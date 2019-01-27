@@ -144,6 +144,28 @@ class Message(Python3StringMixIn):
     _properties_move_to_next.argtypes = [NotmuchMessagePropertiesP]
     _properties_move_to_next.restype = None
 
+    """notmuch_message_add_property"""
+    _add_property = nmlib.notmuch_message_add_property
+    _add_property.argtypes = [NotmuchMessageP, c_char_p, c_char_p]
+    _add_property.restype = c_int
+
+    """notmuch_message_remove_property"""
+    _remove_property = nmlib.notmuch_message_remove_property
+    _remove_property.argtypes = [NotmuchMessageP, c_char_p, c_char_p]
+    _remove_property.restype = c_int
+
+    """notmuch_message_remove_all_properties"""
+    _remove_all_properties = nmlib.notmuch_message_remove_all_properties
+    _remove_all_properties.argtypes = [NotmuchMessageP, c_char_p]
+    _remove_all_properties.restype = c_int
+
+    """notmuch_message_remove_all_properties_with_prefix"""
+    _remove_all_properties_with_prefix = \
+        nmlib.notmuch_message_remove_all_properties_with_prefix
+    _remove_all_properties_with_prefix.argtypes = \
+        [NotmuchMessageP, c_char_p]
+    _remove_all_properties_with_prefix.restype = c_int
+
     #Constants: Flags that can be set/get with set_flag
     FLAG = Enum(['MATCH'])
 
@@ -512,6 +534,101 @@ class Message(Python3StringMixIn):
             value = Message._properties_value(properties)
             yield key.decode("utf-8"), value.decode("utf-8")
             Message._properties_move_to_next(properties)
+
+    def add_property(self, key, value):
+        """ Add a (key,value) pair to a message
+
+        :param key: The name of the property (may not contain an
+            '=' character).
+        :param value: The value of the property to add.
+        :returns: STATUS.SUCCESS if the property was successfully added.
+                  Raises an exception otherwise.
+        :raises: :exc:`NotInitializedError` if message has not been
+                 initialized
+        """
+        if not self._msg:
+            raise NotInitializedError()
+
+        status = self._add_property(self._msg, _str(key), _str(value))
+
+        # bail out on failure
+        if status != STATUS.SUCCESS:
+            raise NotmuchError(status)
+
+        return STATUS.SUCCESS
+
+    def remove_property(self, key, value):
+        """ Remove a (key,value) pair from a message
+
+        It is not an error to remove a non-existant (key,value) pair.
+
+        :param key: The name of the property (may not contain an
+            '=' character).
+        :param value: The value of the property to remove.
+        :returns: STATUS.SUCCESS if the property was successfully removed.
+                  Raises an exception otherwise.
+        :raises: :exc:`NotInitializedError` if message has not been
+                 initialized
+        """
+        if not self._msg:
+            raise NotInitializedError()
+
+        status = self._remove_property(self._msg, _str(key), _str(value))
+
+        # bail out on failure
+        if status != STATUS.SUCCESS:
+            raise NotmuchError(status)
+
+        return STATUS.SUCCESS
+
+    def remove_all_properties(self, key):
+        """ Remove all (key,value) pairs from the given message
+
+        :param key: key to delete properties for. If None, delete properties
+            properties for all keys
+        :returns: STATUS.SUCCESS if the properties were successfully removed.
+                  Raises an exception otherwise.
+        :raises: :exc:`NotInitializedError` if message has not been
+                 initialized
+        """
+        if not self._msg:
+            raise NotInitializedError()
+
+        if key is None:
+            status = self._remove_all_properties(self._msg, None)
+        else:
+            status = self._remove_all_properties(self._msg, _str(key))
+
+        # bail out on failure
+        if status != STATUS.SUCCESS:
+            raise NotmuchError(status)
+
+        return STATUS.SUCCESS
+
+    def remove_all_properties_with_prefix(self, key):
+        """ Remove all (prefix*,value) pairs from the given message
+
+        :param key: delete properties with keys that start with prefix.
+            If None, delete all properties.
+        :returns: STATUS.SUCCESS if the properties were successfully removed.
+                  Raises an exception otherwise.
+        :raises: :exc:`NotInitializedError` if message has not been
+                 initialized
+        """
+        if not self._msg:
+            raise NotInitializedError()
+
+        if key is None:
+            status = self._remove_all_properties_with_prefix(self._msg, None)
+        else:
+            status = self._remove_all_properties_with_prefix(self._msg,
+                                                             _str(key))
+
+        # bail out on failure
+        if status != STATUS.SUCCESS:
+            raise NotmuchError(status)
+
+        return STATUS.SUCCESS
 
     def freeze(self):
         """Freezes the current state of 'message' within the database
