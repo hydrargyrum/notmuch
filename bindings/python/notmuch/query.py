@@ -59,6 +59,9 @@ class Query(object):
     SORT = Enum(['OLDEST_FIRST', 'NEWEST_FIRST', 'MESSAGE_ID', 'UNSORTED'])
     """Constants: Sort order in which to return results"""
 
+    EXCLUDE = Enum(['FLAG', 'TRUE', 'FALSE', 'ALL'])
+    """Constants: XXX"""
+
     def __init__(self, db, querystr):
         """
         :param db: An open database which we derive the Query from.
@@ -133,6 +136,15 @@ class Query(object):
         """
         self._assert_query_is_initialized()
         self._exclude_tag(self._query, _str(tagname))
+
+    _set_omit_excluded = nmlib.notmuch_query_set_omit_excluded
+    _set_omit_excluded.argtypes = [NotmuchQueryP, c_uint]
+    _set_omit_excluded.restype = None
+
+    def set_omit_excluded(self, omit):
+        """XXX"""
+        self._assert_query_is_initialized()
+        self._set_omit_excluded(self._query, omit)
 
     """notmuch_query_search_threads"""
     _search_threads = nmlib.notmuch_query_search_threads
